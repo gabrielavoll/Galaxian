@@ -16,6 +16,7 @@ void setup(){
   size(800,650);
   spaceObj = new Space();
   gameControls = new Controls();
+  scoreObj = new Score();
   gameControls.restartGame();
   Akashi48 = createFont("Akashi", 48);
   Akashi36 = createFont("Akashi", 36);
@@ -106,11 +107,16 @@ class Controls {
      winScreen();
    } else { // progress Level
      scoreObj.nextLevel();
+     scoreObj.saveHighScore();
      softRestartGame();
      transportStart();
    }
  }
- void gameLose(){ gameStatus = "lose"; }
+
+ void gameLose(){ 
+   gameStatus = "lose";
+   scoreObj.saveHighScore();
+ }
  void rightOn(){ right=true; }
  void rightOff(){ right=false; }
  void leftOn(){ left=true; }
@@ -478,7 +484,19 @@ class Score {
      shipScore = 0;
      lives = 3;
      level = 1; 
-     transportStart = 0; 
+     transportStart = 0;
+     String currentHighScore[] = loadStrings("d.txt");
+     if( currentHighScore == null) highScore = 0;
+     else highScore = int(currentHighScore[0]);
+   }
+   
+   void saveHighScore(){
+     String currentHighScore[] = loadStrings("d.txt");
+     if( currentHighScore == null  || shipScore > int(currentHighScore[0] )){
+       String [] arr = {str(shipScore)};
+       highScore = shipScore;
+       saveStrings("d.txt", arr);
+     }
    }
    
    boolean isFinalLevel(){  return level == 3;  }
@@ -496,7 +514,8 @@ class Score {
      stroke(255,100,100);
      text("HI-SCORE",WIDTH_/2 - 50, 30);
      stroke(255);
-     text(highScore, WIDTH_/2 + 100, 30);
+     if(shipScore > highScore ) text(shipScore, WIDTH_/2 + 100, 30);
+     else text(highScore, WIDTH_/2 + 100, 30);
      
      if(lives >= 1) livesIcon( new PVector(WIDTH_ -80, 20));
      if(lives >= 2) livesIcon( new PVector(WIDTH_ -100, 20));
