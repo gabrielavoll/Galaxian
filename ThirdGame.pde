@@ -2,7 +2,7 @@ int WIDTH_ = 800;
 int HEIGHT_ = 650;
 Space spaceObj;
 Ship shipObj;
-Controls gameControls;
+Controls gameControls; //<>//
 Bullets bulletsObj;
 EnemyBullets enemeyBulletsObj;
 Enemy enemyObj;
@@ -13,7 +13,8 @@ PFont Akashi24;
 PFont Akashi36;
 
 void setup(){
-  size(800,650);
+  
+  size(800,650); //<>//
   spaceObj = new Space();
   gameControls = new Controls();
   scoreObj = new Score();
@@ -25,9 +26,10 @@ void setup(){
 
 
 void draw(){
-  if(gameControls.gameStatus == "start"){ 
-    spaceObj.display();
+  if(gameControls.gameStatus == "start"){ //<>//
+    spaceObj.bk(); //<>//
     startScreen();
+    spaceObj.display();
   }if(gameControls.gameStatus == "transport"){
     if(scoreObj.transportStart == 0)  scoreObj.setTransportStart();
     spaceObj.hyperDisplay(scoreObj.transportTime());
@@ -38,14 +40,26 @@ void draw(){
       scoreObj.clearTransport();
     }  
   } else if(gameControls.gameStatus == "on"){
+    spaceObj.bk();
     spaceObj.display();
     scoreObj.display();
     armyObj.display();
     shipObj.display();
     bulletsObj.display();
-    enemeyBulletsObj.display();
-  }
-
+    enemeyBulletsObj.display(); 
+  } else if(gameControls.gameStatus == "lose"){
+   spaceObj.bk();
+   loseScreen(); 
+   spaceObj.display();  
+ } else if(gameControls.gameStatus == "lose-name"){
+   spaceObj.bk();
+   loseScreenName(); 
+   spaceObj.display();  
+ } else if(gameControls.gameStatus == "win"){
+   spaceObj.bk();
+   spaceObj.display(); 
+   winScreen();  
+ }
 }
 class Bullets {
   PVector bullet;
@@ -79,13 +93,16 @@ class Controls {
  boolean right; 
  boolean left;
  boolean gun;
+ String nameInput = "AAA";
+ int activeInputIndex = 0; 
  String gameStatus = "start";
- Controls(){}
  
  void restartGame() {
+  activeInputIndex = 0; 
+  nameInput = "AAA";
   right=false; left= false; 
   bulletsObj = new Bullets();
-  armyObj = new EnemyArmy(39);
+  armyObj = new EnemyArmy();
   shipObj = new Ship(true);
   scoreObj = new Score();
   enemeyBulletsObj = new EnemyBullets();
@@ -95,7 +112,7 @@ class Controls {
    right=false; left= false; 
    enemeyBulletsObj = new EnemyBullets();
    bulletsObj = new Bullets();
-   armyObj = new EnemyArmy(39);
+   armyObj = new EnemyArmy();
  }
  
  void transportStart(){ gameStatus = "transport"; }
@@ -107,15 +124,15 @@ class Controls {
      winScreen();
    } else { // progress Level
      scoreObj.nextLevel();
-     scoreObj.saveHighScore();
      softRestartGame();
      transportStart();
    }
  }
 
- void gameLose(){ 
-   gameStatus = "lose";
-   scoreObj.saveHighScore();
+ void gameLose(){ gameStatus = "lose"; }
+ void gameLoseName(){ 
+   gameStatus = "lose-name";
+   scoreObj.clearScrollTime();
  }
  void rightOn(){ right=true; }
  void rightOff(){ right=false; }
@@ -123,6 +140,41 @@ class Controls {
  void leftOff(){ left=false; }
  void gunOn(){ gun=true; }
  void gunOff(){ gun=false; }
+ 
+ void rightIndexShift(){ 
+   if( activeInputIndex < 2) activeInputIndex++; 
+   enterName();
+ }
+ void leftIndexShift(){ 
+   if( activeInputIndex > 0) activeInputIndex--; 
+   enterName();
+ }
+ void incrementActiveInput(){ 
+   char letter = nameInput.charAt(activeInputIndex);
+   if(letter == "A") letter = ' ';
+   else if(letter == " ") letter = 'Z';
+   else  letter = char( nameInput.charCodeAt(activeInputIndex) - 1 );
+   String newNameInput = "";
+   for ( int i =0; i < 3; i++){
+     if(i ==  activeInputIndex) newNameInput += str(letter);
+     else newNameInput += nameInput[i];
+   }
+   nameInput = newNameInput;
+   enterName();
+ }
+ void decrementActiveInput(){ 
+   char letter = nameInput.charAt(activeInputIndex);
+   if(letter == "Z") letter = ' ';
+   else if(letter == " ") letter = 'A';
+   else  letter = char(nameInput.charCodeAt(activeInputIndex) +1 );
+   String newNameInput = "";
+   for ( int i =0; i < 3; i++){
+     if(i ==  activeInputIndex) newNameInput += str(letter);
+     else newNameInput += nameInput[i];
+   }
+   nameInput = newNameInput;
+   enterName();
+ }
 }
 
 void keyPressed(){
@@ -136,7 +188,16 @@ void keyPressed(){
   } else if( gameControls.gameStatus == "transport"){
     if( key == 'a' || ( key == CODED && keyCode == LEFT ) ) gameControls.leftOn();
     else if( key == 'd' || ( key == CODED && keyCode == RIGHT ) ) gameControls.rightOn();
-  }
+  } else if( gameControls.gameStatus == "lose-name"){
+    if( key == 'a' || ( key == CODED && keyCode == LEFT ) ) gameControls.leftIndexShift();
+    else if( key == 'd' || ( key == CODED && keyCode == RIGHT ) ) gameControls.rightIndexShift();
+    else if( key == 'w' || ( key == CODED && keyCode == UP ) ) gameControls.incrementActiveInput();
+    else if( key == 's' || ( key == CODED && keyCode == DOWN ) ) gameControls.decrementActiveInput();
+    else if( keyCode == ENTER ){
+      scoreObj.saveHighScore();
+      gameControls.gameLose();
+    }
+  } 
 }
 
 void keyReleased(){
@@ -149,13 +210,21 @@ void keyReleased(){
 
 void mousePressed(){
   if(gameControls.gameStatus == "start") gameControls.transportStart();
-  else if(gameControls.gameStatus == "win"  || gameControls.gameStatus == "lose" ){
+  else if(gameControls.gameStatus == "win" ){
     if(mouseX >= width/2 - 75 && mouseX <= width/2 + 75 && mouseY >= height/2 && mouseY <= height/2 + 50){
       gameControls.restartGame(); 
       gameControls.transportStart();
     } else if(mouseX >= width/2 - 75 && mouseX <= width/2 + 75 && mouseY >= height/2 + 75 && mouseY <= height/2 + 125){
       exit();
     }
+  } else if (gameControls.gameStatus == "lose"){
+    if(mouseX >= 310 && mouseX <= 500 && mouseY >= 500 && mouseY <= 550){
+      gameControls.restartGame(); 
+      gameControls.transportStart();
+    } else if(mouseX >= 310 && mouseX <= 500 && mouseY >= 570 && mouseY <= 620){
+      if(window && window.close) window.close();
+      exit();
+    } 
   }
   
 }
@@ -173,7 +242,7 @@ class Enemy {
   float speed = 0.02;
   int shooterCooldown = 0;
   int coolDownInterval = 90;
-  float [] levelSpeedMod = {0, 1, 1.4, 1.9 };
+  float [] levelSpeedMod = { 1, 1.4, 1.9, 2.4, 2.9 };
   
   void setActive(){ movementStatus = "active"; }
   void setReturning(){ movementStatus = "returning"; }
@@ -265,9 +334,9 @@ class Enemy {
       pushMatrix();
       translate(origin.x, origin.y);
       rotate(defRotation);
-      curveOrigin.x = curveOrigin.x + (sin(angle) *scalar * levelSpeedMod[scoreObj.level]);
+      curveOrigin.x = curveOrigin.x + (sin(angle) *scalar * 1);
       angle = angle + speed;
-      curveOrigin.y = (curveOrigin.y + (1* levelSpeedMod[scoreObj.level])) % (HEIGHT_ + 50);
+      curveOrigin.y = (curveOrigin.y + (1* levelSpeedMod[scoreObj.level - 1])) % (HEIGHT_ + 50);
     }
     origin = new PVector( origin.x + addition.x, origin.y + addition.y);
   }
@@ -312,15 +381,16 @@ class EnemyArmy {
   int activeCountDown; 
   int coolDownInterval;
   int minArmyCountActive; 
-  float [] levelSpeedMod = {0, 1, 1.4, 1.9 };
+  float [] levelSpeedMod = { 1, 1.4, 1.9, 2.4, 2.9 };
   
-  EnemyArmy(int armyCount){
+  EnemyArmy(){
     origin = move = new PVector( 0, -320);
     directionR = false;
     army = new Enemy[0]; 
     startX = 100;
     startY = HEIGHT_/3;
     activeEnemyDirectionR = true;
+    int armyCount = 39;
     minArmyCountActive = 3 * armyCount/4;
     activeCountDown = 0;
     coolDownInterval  = 220;
@@ -431,13 +501,13 @@ class EnemyArmy {
     if(directionR) {
       if(origin.x >= 70){
         directionR = false;
-        move = new PVector( -1 * levelSpeedMod[scoreObj.level],  2);
-      } else move = new PVector(1 * levelSpeedMod[scoreObj.level], 0); 
+        move = new PVector( -1, 2 * levelSpeedMod[scoreObj.level - 1]);
+      } else move = new PVector(1, 0); 
     } else {
       if(origin.x <= -70){
         directionR = true;
-        move = new PVector( 1 * levelSpeedMod[scoreObj.level],  2);
-      } else move = new PVector(  -1 * levelSpeedMod[scoreObj.level], 0); 
+        move = new PVector( 1,  2 * levelSpeedMod[scoreObj.level - 1]);
+      } else move = new PVector(  -1, 0); 
     }
     origin = new PVector(origin.x + move.x, origin.y + move.y);
   }
@@ -473,89 +543,197 @@ class EnemyBullets {
   }
   
 }
-class Score {
-   int shipScore; 
-   int highScore = 999;
-   int lives;
-   int level; 
-   int transportStart; 
-   
-   Score(){
-     shipScore = 0;
-     lives = 3;
-     level = 1; 
-     transportStart = 0;
-     String currentHighScore[] = loadStrings("d.txt");
-     if( currentHighScore == null) highScore = 0;
-     else highScore = int(currentHighScore[0]);
-   }
-   
-   void saveHighScore(){
-     String currentHighScore[] = loadStrings("d.txt");
-     if( currentHighScore == null  || shipScore > int(currentHighScore[0] )){
-       String [] arr = {str(shipScore)};
-       highScore = shipScore;
-       saveStrings("d.txt", arr);
-     }
-   }
-   
-   boolean isFinalLevel(){  return level == 3;  }
-   
-   void nextLevel(){ level += 1; }
-   
-   void normalKill(){ shipScore = shipScore + 40; }
-   
-   void display(){
-     stroke(255);
-     rectMode(CORNER);
-     fill(255);
-     textFont(Akashi24);
-     text(shipScore, 100, 30);
-     stroke(255,100,100);
-     text("HI-SCORE",WIDTH_/2 - 50, 30);
-     stroke(255);
-     if(shipScore > highScore ) text(shipScore, WIDTH_/2 + 100, 30);
-     else text(highScore, WIDTH_/2 + 100, 30);
-     
-     if(lives >= 1) livesIcon( new PVector(WIDTH_ -80, 20));
-     if(lives >= 2) livesIcon( new PVector(WIDTH_ -100, 20));
-     if(lives >= 3) livesIcon( new PVector(WIDTH_ -120, 20));
-   }
-   
-   void livesIcon(PVector origin){
-     fill(255,100,100);
-     stroke(255,100,100);
-     ellipse(origin.x, origin.y, 6,6);
-     fill(255); stroke(255);
-     ellipse(origin.x, origin.y, 2,2);
-   }
-  
-   void setTransportStart(){ transportStart = millis();  }
-   void clearTransport(){ transportStart = 0; }
-   int transportTime(){ return millis() - transportStart; } 
-   boolean transportDone(){ return transportTime() > 10000;  }// 10 sec 
-   
-   void deathHandler(){
-     if(lives > 0){
-       lives--; 
-       shipObj = new Ship(false);
-       shipObj.slideIn();
-     } else {
-        gameControls.gameLose(); 
-        loseScreen();
-     }
-   }
+class HighScoreHolder {
+  String name;
+  int score;
+  HighScoreHolder( String n, int s){
+    name = n != "" ? n : "NAN";
+    score = s;
+  }
 }
+class Score {
+  int shipScore; 
+  int highScore = 999;
+  HighScoreHolder [] topScores;
+  int [] startOffset = {-120, -90, -40, 5, 50, 100};
+  int [] loseOffset = {25, 60, 105, 150, 200, 250};
+  int lives;
+  int level; 
+  int topScoreIndicator;
+  int maxTopScores = 10;
+  int transportStart; 
+  boolean activeScroll;
+  int scoreScrollStart;
+
+  Score() {
+    shipScore = 0;
+    lives = 3;
+    level = 1; 
+    topScoreIndicator = -1;
+    transportStart = 0;
+    scoreScrollStart = 0;
+    activeScroll = false;
+    extractHighscore();
+  }
+
+  void displayTopHighscore( int baseHeight, boolean loseScreen ) { 
+    rectMode(CORNER);
+    textAlign(CENTER); 
+    textLeading(20); 
+    textFont(Akashi24);
+    noStroke();
+    int timeAddition = 0; 
+    if( scoreScrollStart == 0 )  setScrollTime();
+    for ( int i = 0; i < topScores.length ; i++){
+      if( topScoreIndicator == i && int(scrollTime()/500) % 2 == 0  ) fill(240, 207, 41);
+      else if( topScoreIndicator == i ) fill(0);
+      else fill(255); 
+      if( int(scrollTime()/1000 > 2 ) || activeScroll ){
+        if(activeScroll == false) {
+          setScrollTime();
+          activeScroll = true; 
+        }
+        if(topScores.length > 5 ) timeAddition = int(scrollTime()/30) ;
+      }
+      int [] offset = loseScreen == true ? loseOffset : startOffset;
+      int origpos = (baseHeight  + offset[max(0, topScores.length  - 5)]) + 40 * i;
+      int heightScores = max( 250, topScores.length * 47);
+      int position = ( origpos - ((timeAddition % heightScores ))) % heightScores + baseHeight - 40;
+      text((i+1), WIDTH_/4-50,position , WIDTH_/3, height);
+      text( topScores[i].name + ": ",  WIDTH_/4 + 10,position , WIDTH_/3, height);
+      text( str(topScores[i].score) , WIDTH_/4 +30,position, 2*WIDTH_/3, height);
+    }
+    fill(0);
+    rect(WIDTH_/2 - 150, baseHeight - 170, 300, 160);
+    fill(0);
+    rect(WIDTH_/2 - 150, baseHeight + 180, 300, 210);
+  }
+
+  void extractHighscore() {
+    String currentHighScore[] = loadStrings("d.txt");
+    highScore = 0;
+    topScores = new HighScoreHolder[0];
+    if(!(currentHighScore == null)){
+      for ( int i = 0; i < currentHighScore.length; i++){
+        String[] split = splitTokens(currentHighScore[i]);
+        String name = (split.length > 1 ? trim(split[1]).replace("\n", "") : "");
+        int score = int(split[0]);
+        if ( i == 0 ) highScore = score;
+        topScores = (HighScoreHolder [])append( topScores, new HighScoreHolder( name, score));
+      }
+    }
+  }
+
+  void saveHighScore() {
+    extractHighscore();
+    int yourScorePosition = 0; 
+    for( int i = 0; i < topScores.length ; i++){
+      if( shipScore <= topScores[i].score ) yourScorePosition++;
+    }
+    if(yourScorePosition < maxTopScores){
+      topScoreIndicator = yourScorePosition;
+      HighScoreHolder addition = new HighScoreHolder( gameControls.nameInput, shipScore);
+      topScores = (HighScoreHolder [])splice(topScores, addition, yourScorePosition);
+      if(yourScorePosition == 0) highScore = shipScore;
+      topScores = (HighScoreHolder [])subset(topScores, 0, maxTopScores);
+      exportTopScores();
+    }
+  }
+  
+  void exportTopScores(){
+    String [] exportString = new String[0];
+    for( int i = 0; i < topScores.length; i++){
+      exportString = (String [])append( exportString, topScores[i].score + " " + topScores[i].name );
+    }
+    saveStrings("d.txt", exportString);
+    extractHighscore();
+  }
+
+  boolean isFinalLevel() {  
+    return level == 5;
+  }
+
+  void nextLevel() { 
+    level += 1;
+  }
+
+  void normalKill() { 
+    shipScore = shipScore + 40;
+  }
+
+  void display() {
+    stroke(255);
+    rectMode(CORNER);
+    fill(255);
+    textFont(Akashi24);
+    text(shipScore, 100, 30);
+    stroke(255);
+    if( shipScore > highScore){
+      if( int(transportTime()/500) % 2 == 0  ) fill(240, 207, 41);
+      else fill(0); 
+    }
+    
+    text("HI-SCORE", WIDTH_/2 - 50, 30);
+    if (shipScore > highScore ) text(shipScore, WIDTH_/2 + 100, 30);
+    else text(highScore, WIDTH_/2 + 100, 30);
+
+    if (lives >= 1) livesIcon( new PVector(WIDTH_ -80, 20));
+    if (lives >= 2) livesIcon( new PVector(WIDTH_ -100, 20));
+    if (lives >= 3) livesIcon( new PVector(WIDTH_ -120, 20));
+  }
+
+  void livesIcon(PVector origin) {
+    fill(255, 100, 100);
+    stroke(255, 100, 100);
+    ellipse(origin.x, origin.y, 6, 6);
+    fill(255); 
+    stroke(255);
+    ellipse(origin.x, origin.y, 2, 2);
+  }
+  
+  void clearScrollTime() { scoreScrollStart = 0; }
+  void setScrollTime(){  scoreScrollStart = millis(); }
+  int scrollTime(){ return millis() - scoreScrollStart; }
+  
+  void setTransportStart() { 
+    transportStart = millis();
+    activeScroll = false;
+  }
+  void clearTransport() { 
+    transportStart = 0;
+  }
+  
+  int transportTime() { 
+    return millis() - transportStart;
+  } 
+  boolean transportDone() { 
+    return transportTime() > 10000;
+  }// 10 sec 
+
+  void deathHandler() {
+    if (lives > 0) {
+      lives--; 
+      shipObj = new Ship(false);
+      shipObj.slideIn();
+    } else {
+      gameControls.gameLoseName(); 
+      loseScreenName();
+    }
+  }
+}
+
 void startScreen(){
+  // 650 / 3.5 = 186 + 255 = 441
+  scoreObj.displayTopHighscore( int(height/3.5 + 225), false );
   rectMode(CORNER);
   textAlign(CENTER); 
   textLeading(20); 
   textFont(Akashi48);
   fill(255);
   noStroke();
-  text("Galaxian Replica",0,height/2.5,width, height); 
+  text("Galaxian Replica",0,height/3.5,width, height); 
   textFont(Akashi24);
-  text("click to start",0, height/2.5 + 100, width, height);
+  text("click to start",0, height/3.5 + 100, width, height);
 }
 
 void levelDisplay(){
@@ -577,7 +755,7 @@ void levelDisplay(){
 
 void pauseScreen(){
   rectMode(CORNER);
-  fill(0, 70); 
+  fill(0, 170); 
   noStroke();
   rect(0,0,width,height); 
   textAlign(CENTER); 
@@ -589,32 +767,79 @@ void pauseScreen(){
   text("Press p to continue playing " ,0,height/3 + 100 ,width, height); 
 }
 
-void loseScreen(){
+
+void loseScreenName(){
   rectMode(CORNER);
   noStroke();
-  fill(200, 50); 
+  fill(0, 170); 
   rect(0,0,width,height); 
-  fill(100,255,255); 
-  rect(width/2-90, height/2, 180,50); 
-  fill(0); 
-  rect(width/2-90, height/2 + 75, 180,50);
   textAlign(CENTER); 
   textLeading(20); 
   fill(255);
-  textFont(Akashi36);
-  text("You lost!",0,height/3,width, height); 
-  text("Your Score: " + scoreObj.shipScore,0,height/3 + 50 ,width, height); 
+  textFont(Akashi48);
+  text("You lost!",0,height/5 - 50,width, height); 
   textFont(Akashi24);
+  text("Your Score: " + scoreObj.shipScore,0,height/5 +20 ,width, height);
+  enterName();
+
+  textFont(Akashi24);
+  text( "press enter to continue", 0, int( width/3 * 1.8), width, height);
+  noStroke();
+}
+
+void enterName(){
+  rectMode(CORNER);
+  noStroke();
   fill(0);
-  text("Try Again?", width/2-75, height/2+15, 150,50); 
+  rect( width/2-90, height/2, 180, 95);
+  stroke(255);
+  strokeWeight(5);
+  fill(0, 50);
+  rect(width/2-90, height/2, 180,60); 
+  strokeWeight(3);
+  line( width/2-75, height/2 + 50, width/2-35, height/2 +50 );
+  line( width/2-20, height/2 + 50, width/2+ 20, height/2 + 50 );
+  line( width/2+35, height/2 + 50, width/2+75, height/2 + 50 );
+  
+  fill(255);
+  int baseLeft = gameControls.activeInputIndex;
+  strokeWeight(5);
+  triangle( (width/2-55) + (baseLeft * 55), height/2 + 75, (width/2-67) + (baseLeft * 55), height/2 + 90, (width/2-43) + (baseLeft * 55), height/2 + 90);
+  textFont(Akashi36);
+  text( gameControls.nameInput[0], width/2-75, height/2  + 15, 40, 40 );
+  text( gameControls.nameInput[1] , width/2-20, height/2  + 15, 40, 40 );
+  text( gameControls.nameInput[2] , width/2+35, height/2  + 15, 40, 40 ); 
+  noStroke();
+  strokeWeight(1);
+}
+
+void loseScreen(){
+  // 650 / 3.5 = 186 + 75 = 261
+  scoreObj.displayTopHighscore(int( height/3.5 + 75), true);
+  rectMode(CORNER);
+  noStroke();
+  fill(100,255,255); 
+  rect(width/2-90, height - 150, 180,50); 
+  fill(0); 
+  rect(width/2-90, height - 75, 180,50);
+  textAlign(CENTER); 
+  textLeading(20); 
+  fill(255);
+  textFont(Akashi48);
+  text("You lost!",0,height/5 - 50,width, height); 
+  textFont(Akashi24);
+  text("Your Score: " + scoreObj.shipScore,0,height/5 + 20 ,width, height); 
+  fill(0);
+  text("Try Again?", width/2-75, height - 135, 150,50); 
   fill(255); 
-  text("Exit", width/2-75, height/2+92, 150,50); 
+  text("Exit", width/2-75, height - 60, 150,50); 
+  noStroke();
 }
 
 void winScreen(){
   rectMode(CORNER);
   noStroke();
-  fill(200, 50); 
+  fill(0, 50); 
   rect(0,0,width,height); 
   fill(100,255,255); 
   rect(width/2-90, height/2, 180,50); 
@@ -622,9 +847,11 @@ void winScreen(){
   rect(width/2-90, height/2 + 75, 180,50);
   textAlign(CENTER); 
   textLeading(20); 
-  fill(0);
+  textFont(Akashi48);
+  fill(255);
+  text("Congradulations",0,height/3 - 120,width, height); 
+  text("You won!",0,height/3 -50,width, height); 
   textFont(Akashi36);
-  text("Congradulations, you won!",0,height/3,width, height); 
   text("Your Score: " + scoreObj.shipScore,0,height/3 + 50 ,width, height); 
   textFont(Akashi24);
   fill(0);
@@ -771,9 +998,11 @@ class Space{
     for(int i = 0; i< 90; i ++) wStars = (PVector [])append(wStars, new PVector(random(0,WIDTH_), random(0,HEIGHT_)));
     for(int i = 0; i< 10; i ++) rStars = (PVector [])append(rStars, new PVector(random(0,WIDTH_), random(0,HEIGHT_)));
   } 
+  void bk(){
+    background(0);
+  }
   
   void display(){
-    background(0);
     noStroke();
     fill(255);
     for(int i = 0; i< 30; i ++) ellipse(wStars[i].x, (wStars[i].y + count) % HEIGHT_, 2,2); 

@@ -4,6 +4,5 @@ for web portability.
 
 Compatible in both Java and Javascript Modes 
 
-Node.js Mini App to serve
 
 
